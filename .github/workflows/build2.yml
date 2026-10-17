@@ -1,0 +1,67 @@
+name: Build MobileGlues for Android
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        abi: [arm64-v8a]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r26d
+          add-to-path: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build
+
+      - name: Configure CMake
+        working-directory: MobileGlues-cpp
+        run: |
+          cmake -B build \
+            -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE=${{ steps.setup-ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake \
+            -DANDROID_ABI=${{ matrix.abi }} \
+            -DANDROID_PLATFORM=android-24 \
+            -DANDROID_STL=c++_shared \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DSTATICLIB=OFF
+
+      - name: Build
+        working-directory: MobileGlues-cpp
+        run: |
+          cmake --build build --config Release --target mobileglues -j$(nproc)
+
+      - name: List output
+        working-directory: MobileGlues-cpp
+        run: |
+          find build -name "libmobileglues.so" -type f
+          ls -la build/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libmobileglues-${{ matrix.abi }}
+          path: |
+            MobileGlues-cpp/build/libmobileglues.so
+            MobileGlues-cpp/build/**/libmobileglues.so
+          if-no-files-found: warn
