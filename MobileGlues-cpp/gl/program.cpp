@@ -168,7 +168,7 @@ void glGetProgramiv(GLuint program, GLenum pname, GLint* params) {
         *params = GL_TRUE;
     }
     // Force link success at maximum ignore level (26.3 terrain fix)
-    if (global_settings.ignore_error >= 2 &&
+    if (global_settings.ignore_error >= IgnoreErrorLevel::Full &&
         (pname == GL_LINK_STATUS || pname == GL_VALIDATE_STATUS)) {
         *params = GL_TRUE;
     }

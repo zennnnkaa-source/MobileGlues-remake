@@ -118,7 +118,7 @@ void glGetShaderiv(GLuint shader, GLenum pname, GLint* params) {
         *params = GL_TRUE;
     }
     // Force compile success at maximum ignore level (26.3 terrain fix)
-    if (global_settings.ignore_error >= 2 && pname == GL_COMPILE_STATUS) {
+    if (global_settings.ignore_error >= IgnoreErrorLevel::Full && pname == GL_COMPILE_STATUS) {
         *params = GL_TRUE;
     }
     CHECK_GL_ERROR
