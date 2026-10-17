@@ -870,6 +870,38 @@ std::string GLSLtoGLSLES_2(const char* glsl_code, GLenum glsl_type, uint essl_ve
     essl = processOutColorLocations(essl);
     essl = forceSupporterOutput(essl);
 
+    // 26.3 / RenderPearl preliminary sanitization
+    // SPIRV-Cross can emit identifiers starting with '_' (_uniform, _instance_*)
+    // that Mali/ANGLE reject. Rename them so the shader at least parses.
+    {
+        static const std::pair<std::string, std::string> renames[] = {
+            {"_uniform", "mg_uniform"},
+            {"_instance_00_01", "mg_instance_00_01"},
+            {"_instance_00_02", "mg_instance_00_02"},
+            {"_instance_00_03", "mg_instance_00_03"},
+            {"_instance_01_00", "mg_instance_01_00"},
+            {"_instance_01_01", "mg_instance_01_01"},
+            {"_instance_", "mg_instance_"},
+        };
+        for (const auto& p : renames) {
+            size_t pos = 0;
+            while ((pos = essl.find(p.first, pos)) != std::string::npos) {
+                if (pos >= 3 && essl.compare(pos - 3, 3, "mg_") == 0) {
+                    pos += p.first.length();
+                    continue;
+                }
+                essl.replace(pos, p.first.length(), p.second);
+                pos += p.second.length();
+            }
+        }
+        if (essl.find("precision ") == std::string::npos) {
+            size_t insertPos = essl.find('\n');
+            if (insertPos != std::string::npos) {
+                essl.insert(insertPos + 1, "precision highp float;\nprecision highp int;\n");
+            }
+        }
+    }
+
     LOG_D("Originally GLSL to GLSL ES Complete: \n%s", essl.c_str())
     return_code = errc;
     return essl;
